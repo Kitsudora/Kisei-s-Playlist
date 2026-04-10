@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="一个从独立 JSON 读取内容并支持搜索的静态歌单展示页。"
+    />
+    <title>Kisei's Playlist</title>
+    <style>
+      :root {
+        --bg: #efc879;
+        --text: #33404f;
+        --soft: rgba(51, 64, 79, 0.76);
+        --panel: rgba(255, 248, 231, 0.86);
+        --panel-strong: rgba(255, 248, 231, 0.95);
+        --line: rgba(114, 135, 156, 0.22);
+        --shadow: 0 12px 32px rgba(72, 84, 98, 0.14);
+        --blue-a: #7ab1c6;
+        --blue-b: #85b8cd;
+        --blue-c: #72879c;
+        --white: #fefffd;
+        --yellow: #ffcc6f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Microsoft YaHei",
+          sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      body {
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 14% 16%, rgba(255, 255, 255, 0.55), transparent 18%),
+          radial-gradient(circle at 86% 10%, rgba(122, 177, 198, 0.12), transparent 20%),
+          radial-gradient(circle at 80% 82%, rgba(255, 204, 111, 0.1), transparent 22%);
+        mix-blend-mode: multiply;
+        z-index: 0;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        left: -25%;
+        top: -25%;
+        width: 150%;
+        height: 150%;
+        pointer-events: none;
+        background-image: radial-gradient(
+          circle,
+          rgba(177, 130, 100, 0.38) 0 2.2px,
+          transparent 2.5px
+        );
+        background-size: 26px 26px;
+        opacity: 0.7;
+        z-index: 0;
+      }
+
+      .pattern-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .patch {
+        position: absolute;
+        border: 1.5px solid rgba(114, 135, 156, 0.18);
+        box-shadow: 0 10px 20px rgba(114, 135, 156, 0.08);
+        opacity: 0.96;
+      }
+
+      .p1 {
+        background: repeating-linear-gradient(
+          180deg,
+          var(--blue-a) 0 18px,
+          var(--white) 18px 36px
+        );
+      }
+
+      .p2 {
+        background: repeating-linear-gradient(
+          45deg,
+          var(--blue-a) 0 24px,
+          var(--white) 24px 31px
+        );
+      }
+
+      .p3 {
+        background-color: var(--blue-b);
+        background-image: radial-gradient(circle, var(--yellow) 0 5px, transparent 5.5px);
+        background-size: 24px 24px;
+      }
+
+      .p4 {
+        background-color: var(--blue-b);
+        background-image:
+          radial-gradient(circle at 18px 18px, var(--blue-c) 0 10px, transparent 10.5px),
+          radial-gradient(circle at 31px 26px, var(--yellow) 0 10px, transparent 10.5px),
+          radial-gradient(circle at 44px 34px, var(--blue-c) 0 10px, transparent 10.5px);
+        background-size: 68px 48px;
+      }
+
+      .patch-a {
+        left: 3%;
+        top: 7%;
+        width: 184px;
+        height: 199px;
+      }
+
+      .patch-b {
+        left: 64.5%;
+        top: 66%;
+        width: 229px;
+        height: 140px;
+      }
+
+      .patch-c {
+        right: 8%;
+        top: 8%;
+        width: 170px;
+        height: 170px;
+      }
+
+      .patch-d {
+        right: 17%;
+        top: 15%;
+        width: 131px;
+        height: 151px;
+      }
+
+      .patch-e {
+        left: 11%;
+        top: 13%;
+        width: 203px;
+        height: 179px;
+        background: var(--blue-a) !important;
+        background-image: none !important;
+      }
+
+      .patch-f {
+        left: 18%;
+        top: 51%;
+        width: 203px;
+        height: 269px;
+      }
+
+      .patch-g {
+        left: 10%;
+        top: 60%;
+        width: 266px;
+        height: 209px;
+      }
+
+      .patch-h {
+        right: 4%;
+        bottom: 10%;
+        width: 220px;
+        height: 218px;
+      }
+
+      .patch-i {
+        right: 78%;
+        bottom: 12%;
+        width: 202px;
+        height: 246px;
+      }
+
+      .page {
+        position: relative;
+        z-index: 2;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 42px 24px 64px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 22px;
+        margin-bottom: 24px;
+      }
+
+      .hero-card,
+      .panel,
+      .content,
+      .song-card,
+      .status-card,
+      .noscript-banner {
+        border: 1.5px solid rgba(114, 135, 156, 0.28);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(8px);
+      }
+
+      .hero-card {
+        position: relative;
+        overflow: hidden;
+        padding: 28px;
+        border-radius: 28px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 248, 231, 0.88),
+          rgba(255, 244, 220, 0.95)
+        );
+      }
+
+      .hero-card::after {
+        content: "";
+        position: absolute;
+        right: -40px;
+        top: -40px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+        box-shadow:
+          inset 0 0 0 14px rgba(98, 183, 203, 0.24),
+          inset 0 0 0 32px rgba(98, 183, 203, 0.48);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 14px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(114, 135, 156, 0.26);
+        background: rgba(122, 177, 198, 0.14);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(34px, 5vw, 64px);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+
+      .hero-line {
+        display: block;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 34rem;
+        font-size: 15px;
+        line-height: 1.7;
+        color: rgba(51, 64, 79, 0.86);
+      }
+
+      .mini-stack {
+        display: grid;
+        gap: 22px;
+      }
+
+      .panel {
+        padding: 22px;
+        border-radius: 24px;
+        background: var(--panel);
+      }
+
+      .live-entry {
+        display: flex;
+        align-items: stretch;
+      }
+
+      .live-entry-link,
+      .live-entry-placeholder {
+        display: flex;
+        width: 100%;
+        min-height: 172px;
+        border-radius: 24px;
+        border: 1.5px solid rgba(114, 135, 156, 0.28);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(8px);
+        overflow: hidden;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 248, 231, 0.88),
+          rgba(255, 244, 220, 0.94)
+        );
+      }
+
+      .live-entry-link {
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: var(--text);
+      }
+
+      .live-entry-link.is-empty {
+        pointer-events: none;
+      }
+
+      .live-entry-cover {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 172px;
+        object-fit: cover;
+      }
+
+      .live-entry-placeholder {
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        font-size: 15px;
+        line-height: 1.7;
+        color: var(--soft);
+      }
+
+      .panel-head,
+      .list-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .panel h2,
+      .list-head h2 {
+        margin: 0 0 14px;
+        font-size: 16px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--soft);
+      }
+
+      .badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.54);
+        border: 1px solid rgba(114, 135, 156, 0.18);
+        font-size: 12px;
+        color: var(--soft);
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .stat {
+        padding: 14px 12px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.42);
+        border: 1px solid rgba(114, 135, 156, 0.18);
+      }
+
+      .stat-key {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        opacity: 0.75;
+      }
+
+      .stat-value {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+      }
+
+      .palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .swatch {
+        display: flex;
+        flex: 1 1 120px;
+        min-height: 84px;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(114, 135, 156, 0.18);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .swatch.bg {
+        background: var(--bg);
+      }
+
+      .swatch.grid {
+        color: #eef2f7;
+        background: var(--blue-a);
+      }
+
+      .swatch.pattern-sample {
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.35);
+      }
+
+      .grid-square {
+        width: 96px;
+        height: 96px;
+        border: 1px solid rgba(114, 135, 156, 0.12);
+        background-color: #efc879;
+        background-image:
+          linear-gradient(#798ba1 1px, transparent 1px),
+          linear-gradient(90deg, #798ba1 1px, transparent 1px);
+        background-size: 24px 24px;
+      }
+
+      .grid-caption {
+        margin-top: 8px;
+        font-size: 11px;
+        opacity: 0.78;
+      }
+
+      .content {
+        padding: 24px;
+        border-radius: 30px;
+        background: var(--panel-strong);
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      .search {
+        display: flex;
+        flex: 1 1 260px;
+        align-items: center;
+        gap: 10px;
+        min-height: 52px;
+        padding: 12px 16px;
+        border: 1.5px solid rgba(114, 135, 156, 0.22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .search:focus-within {
+        border-color: var(--blue-a);
+        box-shadow: 0 0 0 4px rgba(122, 177, 198, 0.16);
+      }
+
+      .search input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--text);
+        font-size: 15px;
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .tab {
+        border: 1.5px solid rgba(114, 135, 156, 0.22);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.54);
+        color: var(--text);
+        padding: 10px 15px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .tab.active {
+        background: var(--blue-a);
+        color: #fdfbf7;
+        border-color: var(--blue-a);
+      }
+
+      .list-head p {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: var(--soft);
+      }
+
+      .result-count {
+        flex-shrink: 0;
+        text-align: right;
+      }
+
+      .status-card,
+      .noscript-banner {
+        padding: 22px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .status-card[data-state="error"] {
+        border-color: rgba(183, 94, 94, 0.28);
+        background: rgba(255, 245, 243, 0.9);
+      }
+
+      .status-title {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .status-desc {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--soft);
+      }
+
+      .song-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .song-card {
+        position: relative;
+        min-height: 132px;
+        padding: 14px 14px 14px 18px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.56);
+      }
+
+      .song-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 6px;
+        border-radius: 20px 0 0 20px;
+        background: var(--accent, var(--blue-a));
+      }
+
+      .lang {
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 14px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(114, 135, 156, 0.18);
+        background: rgba(122, 177, 198, 0.12);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .song-card h3 {
+        margin: 0 0 6px;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+
+      .song-artist {
+        margin: 0;
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      .song-note {
+        display: block;
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--soft);
+      }
+
+      .footer-note {
+        margin: 18px 0 0;
+        font-size: 12px;
+        line-height: 1.6;
+        text-align: center;
+        opacity: 0.7;
+      }
+
+      .noscript-banner {
+        position: relative;
+        z-index: 2;
+        max-width: 1180px;
+        margin: 0 auto 24px;
+      }
+
+      @media (max-width: 900px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          padding: 18px 14px 32px;
+        }
+
+        .hero-card,
+        .panel,
+        .live-entry-link,
+        .live-entry-placeholder,
+        .content,
+        .status-card,
+        .noscript-banner {
+          border-radius: 22px;
+        }
+
+        .stat-grid,
+        .song-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .list-head {
+          flex-direction: column;
+        }
+
+        .result-count {
+          text-align: left;
+        }
+
+        .live-entry-link,
+        .live-entry-cover,
+        .live-entry-placeholder {
+          min-height: 132px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div aria-hidden="true" class="pattern-layer">
+      <div class="patch p1 patch-a"></div>
+      <div class="patch p2 patch-b"></div>
+      <div class="patch p3 patch-c"></div>
+      <div class="patch p4 patch-d"></div>
+      <div class="patch p1 patch-e"></div>
+      <div class="patch p1 patch-f"></div>
+      <div class="patch p2 patch-g"></div>
+      <div class="patch p3 patch-h"></div>
+      <div class="patch p4 patch-i"></div>
+    </div>
+
+    <main class="page">
+      <section class="hero">
+        <article class="hero-card">
+          <span id="hero-eyebrow" class="eyebrow" hidden>Loading</span>
+          <h1 id="hero-title"></h1>
+          <p id="hero-description"></p>
+        </article>
+        <div class="mini-stack">
+          <section class="panel">
+            <div class="panel-head">
+              <h2 id="stats-title">Quick stats</h2>
+              <span id="stats-badge" class="badge">JSON</span>
+            </div>
+            <div id="stat-grid" class="stat-grid"></div>
+          </section>
+          <section class="live-entry">
+            <a
+              id="live-entry-link"
+              class="live-entry-link"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Live entry"
+            >
+              <img
+                id="live-entry-image"
+                class="live-entry-cover"
+                src=""
+                alt=""
+                hidden
+              />
+              <div id="live-entry-placeholder" class="live-entry-placeholder">
+                暂未配置 live 图片。
+              </div>
+            </a>
+          </section>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="toolbar">
+          <label class="search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              id="search-input"
+              type="search"
+              autocomplete="off"
+              placeholder="正在加载歌单..."
+              aria-label="搜索歌曲"
+            />
+          </label>
+          <div id="tabs" class="tabs" aria-label="语言筛选"></div>
+        </div>
+
+        <div class="list-head">
+          <div>
+            <h2 id="list-title">Song list</h2>
+            <p id="list-description"></p>
+          </div>
+          <p id="result-count" class="result-count" aria-live="polite"></p>
+        </div>
+
+        <div id="song-status" class="status-card" data-state="loading" role="status" aria-live="polite">
+          <h3 class="status-title">正在加载歌单...</h3>
+          <p class="status-desc">页面会从独立 JSON 文件读取歌曲和简介信息。</p>
+        </div>
+
+        <div id="song-grid" class="song-grid" hidden></div>
+        <p id="footer-note" class="footer-note"></p>
+      </section>
+    </main>
+
+    <noscript>
+      <div class="noscript-banner">
+        这个页面需要启用 JavaScript 才能读取 JSON 数据并显示歌单。
+      </div>
+    </noscript>
+
+    <script>
+      "use strict";
+
+      const DATA_URL = "./data/site-content.json";
+      const BILIBILI_LIVE_URL = "https://live.bilibili.com/";
+      const LIVE_COVER_API = "/api/live-cover";
+      const state = { activeLanguage: "ALL", query: "", site: {}, songs: [] };
+      const el = {
+        footerNote: document.getElementById("footer-note"),
+        heroDescription: document.getElementById("hero-description"),
+        heroEyebrow: document.getElementById("hero-eyebrow"),
+        heroTitle: document.getElementById("hero-title"),
+        listDescription: document.getElementById("list-description"),
+        listTitle: document.getElementById("list-title"),
+        liveEntryImage: document.getElementById("live-entry-image"),
+        liveEntryLink: document.getElementById("live-entry-link"),
+        liveEntryPlaceholder: document.getElementById("live-entry-placeholder"),
+        resultCount: document.getElementById("result-count"),
+        searchInput: document.getElementById("search-input"),
+        songGrid: document.getElementById("song-grid"),
+        songStatus: document.getElementById("song-status"),
+        statGrid: document.getElementById("stat-grid"),
+        statsBadge: document.getElementById("stats-badge"),
+        statsTitle: document.getElementById("stats-title"),
+        tabs: document.getElementById("tabs"),
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        bindEvents();
+        loadContent();
+      });
+
+      function bindEvents() {
+        el.searchInput.addEventListener("input", (event) => {
+          state.query = normalize(event.target.value);
+          renderSongs();
+        });
+
+        el.tabs.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-language]");
+          if (!button) return;
+          state.activeLanguage = button.dataset.language;
+          renderTabs();
+          renderSongs();
+        });
+      }
+
+      async function loadContent() {
+        try {
+          const response = await fetch(DATA_URL);
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          const data = await response.json();
+          state.site = data.site || {};
+          state.songs = Array.isArray(data.songs) ? data.songs : [];
+          applyMeta();
+          renderStatic();
+          renderStats();
+          renderTabs();
+          renderSongs();
+        } catch (error) {
+          console.error(error);
+          showStatus(
+            "error",
+            "歌单加载失败",
+            "请通过本地静态服务器、GitHub Pages 或 Cloudflare Pages 访问这个页面。直接打开 file:// 页面时，浏览器通常不会允许读取 JSON。"
+          );
+          el.resultCount.textContent = "无法显示结果";
+        }
+      }
+
+      function applyMeta() {
+        const meta = state.site.meta || {};
+        if (meta.title) document.title = meta.title;
+        const tag = document.querySelector('meta[name="description"]');
+        if (tag && meta.description) tag.setAttribute("content", meta.description);
+      }
+
+      function renderStatic() {
+        const hero = state.site.hero || {};
+        const stats = state.site.stats || {};
+        const liveEntry = state.site.liveEntry || {};
+        const search = state.site.search || {};
+        const list = state.site.list || {};
+
+        if (hero.eyebrow) {
+          el.heroEyebrow.hidden = false;
+          el.heroEyebrow.textContent = hero.eyebrow;
+        } else {
+          el.heroEyebrow.hidden = true;
+          el.heroEyebrow.textContent = "";
+        }
+
+        el.heroDescription.textContent =
+          hero.description || "从独立 JSON 读取简介和歌曲内容。";
+        renderTitle(hero.titleLines || ["Kisei's", "Playlist"]);
+        el.statsTitle.textContent = stats.title || "Quick stats";
+
+        if (stats.badge) {
+          el.statsBadge.hidden = false;
+          el.statsBadge.textContent = stats.badge;
+        } else {
+          el.statsBadge.hidden = true;
+          el.statsBadge.textContent = "";
+        }
+
+        el.searchInput.placeholder =
+          search.placeholder || "搜索歌名、艺人、语言或标签";
+        el.searchInput.setAttribute("aria-label", search.label || "搜索歌曲");
+        el.listTitle.textContent = list.title || "Song list";
+        el.listDescription.textContent =
+          list.description || "输入关键词后会实时筛选歌曲。";
+        el.footerNote.textContent =
+          list.footerNote || "页面文案与歌曲卡片都来自同一个 JSON 文件。";
+        renderLiveEntry(liveEntry);
+      }
+
+      function renderTitle(lines) {
+        el.heroTitle.replaceChildren();
+        lines.forEach((line) => {
+          const span = document.createElement("span");
+          span.className = "hero-line";
+          span.textContent = line;
+          el.heroTitle.appendChild(span);
+        });
+      }
+
+      function renderLiveEntry(config) {
+        const roomId = String(config.roomId || "").trim();
+        const label = config.label || "Live entry";
+        const placeholder = config.placeholder || "暂未配置 live 图片。";
+
+        el.liveEntryLink.setAttribute("aria-label", label);
+        resetLiveEntry(placeholder);
+
+        if (!roomId) {
+          return;
+        }
+
+        const href = BILIBILI_LIVE_URL + encodeURIComponent(roomId);
+        el.liveEntryLink.href = href;
+        el.liveEntryLink.classList.remove("is-empty");
+        el.liveEntryLink.setAttribute("target", "_blank");
+        el.liveEntryLink.setAttribute("rel", "noopener noreferrer");
+
+        loadLiveEntryImage(roomId, config, placeholder, href);
+      }
+
+      async function loadLiveEntryImage(roomId, config, placeholder, href) {
+        try {
+          const response = await fetch(
+            LIVE_COVER_API + "?roomId=" + encodeURIComponent(roomId)
+          );
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+
+          const payload = await response.json();
+          const liveData = (payload && payload.data) || {};
+          const imageUrl = liveData.cover || "";
+          const imageAlt =
+            config.imageAlt ||
+            liveData.title ||
+            liveData.anchorName ||
+            config.label ||
+            "Live cover";
+
+          if (!imageUrl) {
+            resetLiveEntry(placeholder || "未获取到直播封面。");
+            return;
+          }
+
+          if (liveData.href) {
+            el.liveEntryLink.href = liveData.href;
+          } else if (href) {
+            el.liveEntryLink.href = href;
+          }
+
+          el.liveEntryImage.hidden = false;
+          el.liveEntryImage.src = imageUrl;
+          el.liveEntryImage.alt = imageAlt;
+          el.liveEntryPlaceholder.hidden = true;
+        } catch (error) {
+          console.error(error);
+          const message =
+            location.hostname === "localhost" || location.hostname === "127.0.0.1"
+              ? "本地 Python 静态服务不会执行 Cloudflare Pages Functions。要测试这个接口，请用 Cloudflare Pages 或 wrangler pages dev。"
+              : "直播封面加载失败。";
+          resetLiveEntry(message);
+        }
+      }
+
+      function resetLiveEntry(message) {
+        el.liveEntryLink.href = "#";
+        el.liveEntryLink.classList.add("is-empty");
+        el.liveEntryLink.removeAttribute("target");
+        el.liveEntryLink.removeAttribute("rel");
+        el.liveEntryImage.hidden = true;
+        el.liveEntryImage.removeAttribute("src");
+        el.liveEntryImage.alt = "";
+        el.liveEntryPlaceholder.hidden = false;
+        el.liveEntryPlaceholder.textContent = message;
+      }
+
+      function renderStats() {
+        const items =
+          (state.site.stats && state.site.stats.items) || [
+            { label: "Total", type: "all" },
+            { label: "CN", type: "language", value: "CN" },
+            { label: "JP", type: "language", value: "JP" },
+          ];
+        el.statGrid.replaceChildren();
+        items.forEach((item) => {
+          const card = document.createElement("div");
+          card.className = "stat";
+          card.innerHTML =
+            '<span class="stat-key">' +
+            escapeHtml(item.label || "") +
+            '</span><span class="stat-value">' +
+            resolveStat(item) +
+            "</span>";
+          el.statGrid.appendChild(card);
+        });
+      }
+
+      function resolveStat(item) {
+        if (item.type === "language") return countLanguage(item.value);
+        return state.songs.length;
+      }
+
+      function renderTabs() {
+        const filters = state.site.filters || {};
+        const allLabel = filters.allLabel || "全部";
+        const languages = orderedLanguages();
+        if (state.activeLanguage !== "ALL" && !languages.includes(state.activeLanguage)) {
+          state.activeLanguage = "ALL";
+        }
+        el.tabs.replaceChildren();
+        el.tabs.appendChild(tabButton("ALL", allLabel + " " + state.songs.length));
+        languages.forEach((language) => {
+          el.tabs.appendChild(
+            tabButton(language, languageLabel(language) + " " + countLanguage(language))
+          );
+        });
+      }
+
+      function tabButton(language, text) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tab" + (state.activeLanguage === language ? " active" : "");
+        button.dataset.language = language;
+        button.textContent = text;
+        button.setAttribute("aria-pressed", String(state.activeLanguage === language));
+        return button;
+      }
+
+      function renderSongs() {
+        const list = state.site.list || {};
+        const songs = filteredSongs();
+        const template = list.resultTemplate || "显示 {visible} / {total} 首";
+        el.resultCount.textContent = format(template, {
+          visible: songs.length,
+          total: state.songs.length,
+        });
+        if (!state.songs.length) {
+          showStatus(
+            "empty",
+            list.emptyTitle || "歌单暂时为空",
+            list.emptyDescription || "请先在 JSON 文件里添加歌曲数据。"
+          );
+          return;
+        }
+        if (!songs.length) {
+          showStatus(
+            "empty",
+            list.emptyTitle || "没有找到匹配歌曲",
+            list.emptyDescription || "试试别的歌名、艺人名，或者切换语言标签。"
+          );
+          return;
+        }
+        el.songGrid.replaceChildren();
+        songs.forEach((song) => {
+          const card = document.createElement("article");
+          card.className = "song-card";
+          card.style.setProperty("--accent", accent(song.language));
+          card.innerHTML =
+            '<span class="lang">' +
+            escapeHtml(song.language || "N/A") +
+            "</span><h3>" +
+            escapeHtml(song.title || "Untitled") +
+            '</h3><p class="song-artist">' +
+            escapeHtml(song.artist || "Unknown artist") +
+            "</p>" +
+            (song.note
+              ? '<small class="song-note">' + escapeHtml(song.note) + "</small>"
+              : "");
+          el.songGrid.appendChild(card);
+        });
+        el.songStatus.hidden = true;
+        el.songGrid.hidden = false;
+      }
+
+      function showStatus(stateName, title, description) {
+        el.songStatus.dataset.state = stateName;
+        el.songStatus.hidden = false;
+        el.songGrid.hidden = true;
+        el.songStatus.innerHTML =
+          '<h3 class="status-title">' +
+          escapeHtml(title) +
+          '</h3><p class="status-desc">' +
+          escapeHtml(description) +
+          "</p>";
+      }
+
+      function filteredSongs() {
+        return state.songs.filter((song) => {
+          const matchLanguage =
+            state.activeLanguage === "ALL" || song.language === state.activeLanguage;
+          const matchQuery = !state.query || searchText(song).includes(state.query);
+          return matchLanguage && matchQuery;
+        });
+      }
+
+      function searchText(song) {
+        const tags = Array.isArray(song.tags) ? song.tags.join(" ") : "";
+        return normalize(
+          [
+            song.title,
+            song.artist,
+            song.language,
+            languageLabel(song.language),
+            song.note,
+            tags,
+          ].join(" ")
+        );
+      }
+
+      function orderedLanguages() {
+        const order =
+          (state.site.filters && state.site.filters.languageOrder) || [];
+        const existing = Array.from(
+          new Set(state.songs.map((song) => song.language).filter(Boolean))
+        );
+        const result = order.filter((language) => existing.includes(language));
+        existing.forEach((language) => {
+          if (!result.includes(language)) result.push(language);
+        });
+        return result;
+      }
+
+      function languageLabel(language) {
+        const labels =
+          (state.site.filters && state.site.filters.languageLabels) || {};
+        return labels[language] || language || "N/A";
+      }
+
+      function countLanguage(language) {
+        return state.songs.filter((song) => song.language === language).length;
+      }
+
+      function accent(language) {
+        return { CN: "#7ab1c6", JP: "#ffcc6f", EN: "#72879c" }[language] || "#7ab1c6";
+      }
+
+      function normalize(value) {
+        return String(value || "").normalize("NFKC").toLowerCase().trim();
+      }
+
+      function format(template, values) {
+        return template.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? "");
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+    </script>
+  </body>
+</html>

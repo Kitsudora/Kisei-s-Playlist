@@ -1,0 +1,65 @@
+{
+  "site": {
+    "meta": {
+      "title": "Kisei's Playlist",
+      "description": "一个适合部署到 GitHub Pages 或 Cloudflare Pages 的静态歌单展示页，页面内容从独立 JSON 文件读取。"
+    },
+    "hero": {
+      "eyebrow": "",
+      "titleLines": ["Kisei's", "Playlist"],
+      "description": "这个版本保留了拼贴纹样和卡片式信息布局，同时把简介文案、统计区和歌曲内容统一放进一个 JSON 文件里。之后你只需要维护数据，不需要反复改 HTML 结构。"
+    },
+    "stats": {
+      "title": "Quick stats",
+      "badge": "",
+      "items": [
+        { "label": "Total", "type": "all" },
+        { "label": "CN", "type": "language", "value": "CN" },
+        { "label": "JP", "type": "language", "value": "JP" }
+      ]
+    },
+    "liveEntry": {
+      "label": "Live entry",
+      "roomId": "22374695",
+      "imageAlt": "直播封面",
+      "placeholder": "暂未配置 live 图片。"
+    },
+    "search": {
+      "label": "搜索歌曲",
+      "placeholder": "搜索歌名、艺人、语言或标签"
+    },
+    "filters": {
+      "allLabel": "全部",
+      "languageOrder": ["CN", "JP", "EN"],
+      "languageLabels": {
+        "CN": "CN",
+        "JP": "JP",
+        "EN": "EN"
+      }
+    },
+    "list": {
+      "title": "Song list",
+      "description": "支持按关键词实时搜索，并可按语言切换显示结果。",
+      "resultTemplate": "显示 {visible} / {total} 首",
+      "emptyTitle": "没有找到匹配歌曲",
+      "emptyDescription": "试试别的歌名、艺人名，或者切换到其他语言标签。",
+      "footerNote": "这个页面的简介信息、统计区和歌曲卡片都来自同一个 JSON 文件，后续扩充歌单时只要继续往数据里加内容即可。"
+    }
+  },
+  "songs": [
+    {
+      "title": "这是一个",
+      "artist": "测试",
+      "language": "CN",
+      "note": "起源于 / 2025",
+      "tags": ["各种", "tag", "都可以添加", "anthem"]
+    },
+    {
+      "title": "幸福論",
+      "artist": "椎名林檎",
+      "language": "JP",
+      "note": "幸福論 / 1999",
+      "tags": ["日语"]
+    }
+  ]
+}
