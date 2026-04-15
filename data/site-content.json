@@ -7,7 +7,7 @@
     "hero": {
       "eyebrow": "",
       "titleLines": ["Kisei's", "Playlist"],
-      "description": "本页面的所有可配置信息都存放在 data\\site-content.json文件中，更改对应的部分即可内容。我是简介，写我。"
+      "description": "这是辉星的PlayList。虽然也不维护。"
     },
     "stats": {
       "title": "Quick stats",
