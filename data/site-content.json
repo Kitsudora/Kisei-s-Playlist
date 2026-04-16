@@ -7,7 +7,12 @@
     "hero": {
       "eyebrow": "",
       "titleLines": ["Kisei's", "Playlist"],
-      "description": "这是辉星的PlayList。虽然也不维护。"
+      "description": "这是辉星的PlayList。虽然也不维护。
+      ✨BILIBILI主页：https://space.bilibili.com/453900186
+      ✨舰长礼物进度群：241182033
+      ✨直播通知群：893182284
+      ✨3月舰礼地址收集：https://www.wjx.top/vm/PpPY2Px.aspx# 截止到4.20！
+      "
     },
     "stats": {
       "title": "Quick stats",
@@ -48,10 +53,10 @@
   },
   "songs": [
     {
-      "title": "这是一个",
-      "artist": "测试",
+      "title": "还没有维护",
+      "artist": "KISEI",
       "language": "CN",
-      "note": "起源于 / 2025",
+      "note": "你才 / 2025",
       "tags": ["各种", "tag", "都可以添加", "anthem"]
     },
     {
@@ -61,12 +66,6 @@
       "note": "星街すいせい / NEXT COLOR PLANET",
       "tags": ["日语"]
     },
-    {
-      "title": "我是歌名，在data\\site-content.json，中复制粘贴这一个块，并且修改信息，",
-      "artist": "我是作者，就可以加入新歌。或者让chat老师来完成这个工作",
-      "language": "JP",
-      "note": "我是note / 我是日期",
-      "tags": ["日语"]
-    }
+    
   ]
 }
